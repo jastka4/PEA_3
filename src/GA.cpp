@@ -1,7 +1,7 @@
 //
 // Created by jskalska on 30/12/2018.
 //
-
+#include <random>
 #include "GA.h"
 
 GA::GA() {
@@ -9,7 +9,10 @@ GA::GA() {
     this->realPopulationSize = 0;
     this->generations = 1000;
     this->mutationRate = 10;
-    this->showPopulationEnabled = false;
+    this->mutationMethod = SWAP;
+    this->crossoverRate = 80;
+    this->crossoverMethod = MPXI;
+    this->showPopulationEnabled = true;
 }
 
 // checks if is a valid solution, then return total cost of path else return -1
@@ -48,21 +51,18 @@ int GA::isValidSolution(std::vector<int> &solution) {
     return total_cost;
 }
 
-
+// checks if exists in the population
 bool GA::existsChromosome(const std::vector<int> &v) {
-    // checks if exists in the population
-    for (std::vector<std::pair<std::vector<int>, int> >::iterator it = population.begin();
-         it != population.end(); ++it) {
-        const std::vector<int> &vec = (*it).first; // gets the std::vector
+    for (auto &it : population) {
+        const std::vector<int> &vec = it.first; // gets the std::vector
         if (equal(v.begin(), v.end(), vec.begin())) // compares std::vectors
             return true;
     }
     return false;
 }
 
-
-void GA::initialPopulation() // generates the initial population
-{
+// generates the initial population
+void GA::initializePopulation() {
     std::vector<int> parent;
 
     // inserts initial vertex in the parent
@@ -78,20 +78,20 @@ void GA::initialPopulation() // generates the initial population
 
     if (total_cost != -1) // checks if the parent is valid
     {
-        population.push_back(make_pair(parent, total_cost)); // inserts in the population
+        population.emplace_back(parent, total_cost); // inserts in the population
         realPopulationSize++; // increments realPopulationSize
     }
 
     // makes random permutations "generations" times
     for (int i = 0; i < generations; i++) {
         // generates a random permutation
-        random_shuffle(parent.begin() + 1, parent.begin() + (rand() % (gm.getNumberOfVertexes() - 1) + 1));
+        shuffle(parent.begin() + 1, parent.begin() + (rand() % (gm.getNumberOfVertexes() - 1) + 1), std::mt19937(std::random_device()()));
 
         int total_cost = isValidSolution(parent); // checks if solution is valid
 
         // checks if permutation is a valid solution and if not exists
         if (total_cost != -1 && !existsChromosome(parent)) {
-            population.push_back(make_pair(parent, total_cost)); // add in population
+            population.emplace_back(parent, total_cost); // add in population
             realPopulationSize++; // increments realPopulationSize in the unit
         }
         if (realPopulationSize == populationSize) // checks size population
@@ -107,35 +107,34 @@ void GA::initialPopulation() // generates the initial population
 
 void GA::showPopulation() {
     std::cout << "\nShowing solutions...\n\n";
-    for (std::vector<std::pair<std::vector<int>, int> >::iterator it = population.begin();
-         it != population.end(); ++it) {
-        const std::vector<int> &vec = (*it).first; // gets the std::vector
+    for (auto &it : population) {
+        const std::vector<int> &vec = it.first; // gets the std::vector
 
         for (int i = 0; i < gm.getNumberOfVertexes(); i++)
             std::cout << vec[i] << " ";
         std::cout << 0;
-        std::cout << " | Cost: " << (*it).second << "\n\n";
+        std::cout << " | Cost: " << it.second << "\n\n";
     }
     std::cout << "\nPopulation size: " << realPopulationSize << std::endl;
 }
 
 // inserts in the std::vector using binary search
 void GA::insertBinarySearch(std::vector<int> &child, int total_cost) {
-    int imin = 0;
-    int imax = realPopulationSize - 1;
+    int min = 0;
+    int max = realPopulationSize - 1;
 
-    while (imax >= imin) {
-        int imid = imin + (imax - imin) / 2;
+    while (max >= min) {
+        int mid = min + (max - min) / 2;
 
-        if (total_cost == population[imid].second) {
-            population.insert(population.begin() + imid, make_pair(child, total_cost));
+        if (total_cost == population[mid].second) {
+            population.insert(population.begin() + mid, make_pair(child, total_cost));
             return;
-        } else if (total_cost > population[imid].second)
-            imin = imid + 1;
+        } else if (total_cost > population[mid].second)
+            min = mid + 1;
         else
-            imax = imid - 1;
+            max = mid - 1;
     }
-    population.insert(population.begin() + imin, make_pair(child, total_cost));
+    population.insert(population.begin() + min, make_pair(child, total_cost));
 }
 
 /*
@@ -161,7 +160,7 @@ void GA::insertBinarySearch(std::vector<int> &child, int total_cost) {
 		Children are invalids: 5 appears 2x in child1 and 3 appears 2x in child2
 		Solution: map of genes that checks if genes are not used
 */
-void GA::crossover(std::vector<int> &parent1, std::vector<int> &parent2) {
+void GA::multiPointCrossoverWithInversion(std::vector<int> &parent1, std::vector<int> &parent2) {
     std::vector<int> child1, child2;
 
     // map of genes, checks if already are selected
@@ -193,7 +192,7 @@ void GA::crossover(std::vector<int> &parent1, std::vector<int> &parent2) {
         }
     }
 
-    // generates childs
+    // generates children
 
     // until point1, child1 receives genes of the parent1
     // and child2 receives genes of the parent2
@@ -222,7 +221,7 @@ void GA::crossover(std::vector<int> &parent1, std::vector<int> &parent2) {
             genes1[parent2[i]] = 1; // marks the gene
         } else {
             // if the gene already is used, chooses gene that is not used
-            for (std::map<int, int>::iterator it = genes1.begin(); it != genes1.end(); ++it) {
+            for (auto it = genes1.begin(); it != genes1.end(); ++it) {
                 if (it->second == 0) // checks if is not used
                 {
                     child1.push_back(it->first);
@@ -238,7 +237,7 @@ void GA::crossover(std::vector<int> &parent1, std::vector<int> &parent2) {
             genes2[parent1[i]] = 1; // marks the gene
         } else {
             // if the gene already is used, chooses gene that is not used
-            for (std::map<int, int>::iterator it = genes2.begin(); it != genes2.end(); ++it) {
+            for (auto it = genes2.begin(); it != genes2.end(); ++it) {
                 if (it->second == 0) // checks if is not used
                 {
                     child2.push_back(it->first);
@@ -249,7 +248,7 @@ void GA::crossover(std::vector<int> &parent1, std::vector<int> &parent2) {
         }
     }
 
-    // ramaining genes: child1 receives genes of the parent1
+    // remaining genes: child1 receives genes of the parent1
     // and child2 receives genes of the parent2
     for (int i = point2 + 1; i < gm.getNumberOfVertexes(); i++) {
         child1.push_back(parent1[i]);
@@ -257,25 +256,7 @@ void GA::crossover(std::vector<int> &parent1, std::vector<int> &parent2) {
     }
 
     // mutation
-    int mutation = rand() % 100 + 1; // random number in [1,100]
-    if (mutation <= mutationRate) // checks if the random number <= mutation rate
-    {
-        // makes a mutation: change of two genes
-
-        int index_gene1, index_gene2;
-        index_gene1 = rand() % (gm.getNumberOfVertexes() - 1) + 1;
-        index_gene2 = rand() % (gm.getNumberOfVertexes() - 1) + 1;
-
-        // makes for child1
-        int aux = child1[index_gene1];
-        child1[index_gene1] = child1[index_gene2];
-        child1[index_gene2] = aux;
-
-        // makes for child2
-        aux = child2[index_gene1];
-        child2[index_gene1] = child2[index_gene2];
-        child2[index_gene2] = aux;
-    }
+    mutation(child1, child2);
 
     int total_cost_child1 = isValidSolution(child1);
     int total_cost_child2 = isValidSolution(child2);
@@ -295,22 +276,76 @@ void GA::crossover(std::vector<int> &parent1, std::vector<int> &parent2) {
     }
 }
 
+// Apply two-point crossover to selected Tour pair
+void GA::partiallyMatchedCrossover(std::vector<int> &parent1, std::vector<int> &parent2) {  // TODO - finish the function
+    std::vector<int> child1, child2;
+
+    // map of genes, checks if already are selected
+    std::map<int, int> genes1, genes2;
+
+    for (int i = 0; i < gm.getNumberOfVertexes(); i++) {
+        // initially the genes not are used
+        genes1[parent1[i]] = 0;
+        genes2[parent2[i]] = 0;
+    }
+}
+
+void GA::swapMutation(std::vector<int> &chromosome) {
+
+    int index_gene1, index_gene2;
+    index_gene1 = rand() % (gm.getNumberOfVertexes() - 1) + 1;
+    index_gene2 = rand() % (gm.getNumberOfVertexes() - 1) + 1;
+
+    // makes a swap
+    int aux = chromosome[index_gene1];
+    chromosome[index_gene1] = chromosome[index_gene2];
+    chromosome[index_gene2] = aux;
+}
+
+void GA::scrambleMutation(std::vector<int> &chromosome) {
+    int index_gene1, index_gene2;
+    index_gene1 = rand() % (gm.getNumberOfVertexes() - 1) + 1;
+    index_gene2 = rand() % (gm.getNumberOfVertexes() - 1) + 1;
+
+    // scrambles genes
+    std::shuffle(chromosome.begin() + index_gene1, chromosome.begin() + index_gene2, std::mt19937(std::random_device()()));
+}
+
+void GA::mutation(std::vector<int> &chromosome1, std::vector<int> &chromosome2) {
+    int mutation = rand() % 100 + 1; // random number in [1,100]
+    if (mutation <= mutationRate) // checks if the random number <= mutation rate
+    {
+        // makes a mutation: change of two genes
+        switch (mutationMethod) {
+            case 0:
+                swapMutation(chromosome1); // for chromosome1
+                swapMutation(chromosome2); // for chromosome2
+                break;
+            case 1:
+                scrambleMutation(chromosome1); // for chromosome1
+                scrambleMutation(chromosome2); // for chromosome2
+            default:break;
+        }
+    }
+}
+
 // runs the genetic algorithm
 void GA::geneticAlgorithm() {
-    initialPopulation(); // gets initial population
-
+    initializePopulation(); // gets initial population
     if (realPopulationSize == 0)
         return;
+
+    // TODO - compute fitness
 
     for (int i = 0; i < generations; i++) {
         int old_populationSize = realPopulationSize;
 
-        /* selects two parents (if exists) who will participate
+        /* selects two parents (if exists) who will participate     TODO - tournament selection
             of the reproduction process */
         if (realPopulationSize >= 2) {
             if (realPopulationSize == 2) {
                 // applying crossover in the parents
-                crossover(population[0].first, population[1].first);
+                multiPointCrossoverWithInversion(population[0].first, population[1].first);
             } else {
                 // realPopulationSize > 2
 
@@ -323,7 +358,7 @@ void GA::geneticAlgorithm() {
                 } while (parent1 == parent2);
 
                 // applying crossover in the two parents
-                crossover(population[parent1].first, population[parent2].first);
+                multiPointCrossoverWithInversion(population[parent1].first, population[parent2].first);
             }
 
             // gets difference to check if the population grew
@@ -347,16 +382,17 @@ void GA::geneticAlgorithm() {
         } else // population contains only 1 parent
         {
             // applying crossover in the parent
-            crossover(population[0].first, population[0].first);
+            multiPointCrossoverWithInversion(population[0].first, population[0].first);
 
             if (realPopulationSize > populationSize) {
                 population.pop_back(); // removes the worst parent of the population
                 realPopulationSize--; // decrements the realPopulationSize in the unit
             }
         }
+        // TODO - compute fitness
     }
 
-    if (showPopulationEnabled == true)
+    if (showPopulationEnabled)
         showPopulation(); // shows the population
 
     std::cout << "\nBest solution: ";
@@ -375,13 +411,13 @@ int GA::getCostBestSolution() {
 
 void GA::menu() {
     std::cout << "1. Change the population size. Actual: " << populationSize << ".\n"
-                 "2. Choose the mutation rate. Actual: " << mutationRate << ".\n"
-                 "4. Choose the mutation method. Actual: " << mutationMethod << ".\n"
-                 "3. Choose the crossover rate. Actual: " << crossoverRate << ".\n"
-                 "4. Choose the crossover method. Actual: " << crossoverMethod << ".\n"
-                 "6. Perform search.\n"
-                 "7. Exit.\n"
-                 "Please enter the appropriate number: ";
+              << "2. Choose the mutation rate. Actual: " << mutationRate << ".\n"
+              << "3. Choose the mutation method. Actual: " << mutationMethod << "(0 - swap, 1 - scramble).\n"
+              << "4. Choose the crossover rate. Actual: " << crossoverRate << ".\n"
+              << "5. Choose the crossover method. Actual: " << crossoverMethod << "(0 - multi point crossover with inversion, 1 - partially matched crossover).\n"
+              << "6. Perform search.\n"
+              << "7. Exit.\n"
+              << "Please enter the appropriate number: ";
     int chosen;
     std::string file_name;
     std::cin >> chosen;
@@ -395,45 +431,39 @@ void GA::menu() {
             std::cin >> mutationRate;
             break;
         case 3:
-            std::cout << "Please specify the crossover rate (less than 100): \n";
-            std::cin >> crossoverRate;
-            break;
-        case 4:
-            std::cout << "Please choose the crossover method:\n";
-//                         "0 - swap\n"
-//                         "1 - insert\n"
-//                         "2 - invert\n";
+            std::cout << "Please choose the mutation method:\n"
+                         "0 - swap mutation\n"
+                         "1 - scramble mutation\n";
             int mutation;
             std::cin >> mutation;
-            switch(mutation){
+            switch (mutation) {
                 case 0:
                     mutationMethod = SWAP;
                     break;
                 case 1:
-                    mutationMethod = INSERT;
+                    mutationMethod = SCRAMBLE;
                     break;
-                case 2:
-                    mutationMethod = INVERT;
-                    break;
+                default:break;
             }
             break;
+        case 4:
+            std::cout << "Please specify the crossover rate (less than 100): \n";
+            std::cin >> crossoverRate;
+            break;
         case 5:
-            std::cout << "Please choose the crossover method:\n";
-//                         "0 - swap\n"
-//                         "1 - insert\n"
-//                         "2 - invert\n";
+            std::cout << "Please choose the crossover method:\n"
+                         "0 - multi point crossover with inversion\n"
+                         "1 - partially matched crossover\n";
             int crossover;
             std::cin >> crossover;
-            switch(crossover){
+            switch (crossover) {
                 case 0:
-                    crossoverMethod = SWAP;
+                    crossoverMethod = MPXI;
                     break;
                 case 1:
-                    crossoverMethod = INSERT;
+                    crossoverMethod = PMX;
                     break;
-                case 2:
-                    crossoverMethod = INVERT;
-                    break;
+                default:break;
             }
             break;
         case 6:
@@ -458,4 +488,3 @@ void GA::setPopulationSize(int populationSize) {
 void GA::setMutationRate(int mutationRate) {
     GA::mutationRate = mutationRate;
 }
-

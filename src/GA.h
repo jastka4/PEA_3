@@ -17,7 +17,6 @@
 
 typedef std::pair<std::vector<int>, int> my_pair;
 
-
 // sort vector with pair
 struct sort_pred
 {
@@ -39,10 +38,14 @@ private:
     int crossoverMethod; // crossover method
     bool showPopulationEnabled; // flag to show population
 
-    void initialPopulation(); // generates the initial population
+    void initializePopulation(); // generates the initial population
     int isValidSolution(std::vector<int>& solution); // checks if a solution is valid
     void showPopulation(); // shows population
-    void crossover(std::vector<int>& parent1, std::vector<int>& parent2); // makes the crossover
+    void multiPointCrossoverWithInversion(std::vector<int>& parent1, std::vector<int>& parent2); // makes the crossover
+    void partiallyMatchedCrossover(std::vector<int>& parent1, std::vector<int>& parent2); // makes the crossover
+    void swapMutation(std::vector<int>& chromosome);
+    void scrambleMutation(std::vector<int>& chromosome);
+    void mutation(std::vector<int> &chromosome1, std::vector<int> &chromosome2);
     void insertBinarySearch(std::vector<int>& child, int total_cost); // uses binary search to insert
     int getCostBestSolution(); // returns cost of the best solution
     bool existsChromosome(const std::vector<int> & v); // checks if exists the chromosome
@@ -53,5 +56,5 @@ public:
     void setPopulationSize(int populationSize);
     void setMutationRate(int mutationRate);
     void geneticAlgorithm(); // runs genetic algorithm
-    void menu(); // menu for genetic algorithm
+    void menu() override; // menu for genetic algorithm
 };

@@ -13,10 +13,14 @@
 
 class TSP {
 public:
-    enum neighbourhood {
+    enum crossover {
+        MPXI = 0,
+        PMX = 1
+    };
+
+    enum mutation {
         SWAP = 0,
-        INSERT = 1,
-        INVERT = 2
+        SCRAMBLE = 1
     };
 
     virtual ~TSP(){};

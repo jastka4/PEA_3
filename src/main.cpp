@@ -6,6 +6,7 @@
 #include <ctime>
 #include <thread>
 #include "GA.h"
+#include "ACO.h"
 
 void testMenu();
 
@@ -14,7 +15,7 @@ int main() {
     srand(time(NULL));
 
     TSP *ga = new GA();
-//    TSP *aco = new ACO();
+    TSP *aco = new ACO();
 
     int chosen;
     std::string file_name;
@@ -33,7 +34,7 @@ int main() {
             case 1:
                 std::cout << "Please enter the file name: ";
                 std::cin >> file_name;
-                if (ga->loadFromFile(file_name)) {
+                if (ga->loadFromFile(file_name) && aco->loadFromFile(file_name)) {
                     std::cout << "Loaded correctly!\n";
                 }
                 else std::cout << "The file could not be loaded!\n";
@@ -42,7 +43,7 @@ int main() {
                 ga->menu();
                 break;
             case 3:
-//                aco->menu();
+                aco->menu();
                 break;
             case 4:
                 testMenu();
@@ -55,7 +56,7 @@ int main() {
     }
 
     delete ga;
-//    delete aco;
+    delete aco;
 
     return 0;
 }

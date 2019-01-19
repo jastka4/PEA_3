@@ -64,6 +64,8 @@ bool GA::existsChromosome(const std::vector<int> &v) {
 // generates the initial population
 void GA::initializePopulation() {
     std::vector<int> parent;
+    realPopulationSize = 0;
+    population.clear();
 
     // inserts initial vertex in the parent
     parent.push_back(0);
@@ -167,7 +169,7 @@ void GA::multiPointCrossoverWithInversion(std::vector<int> &parent1, std::vector
     std::map<int, int> genes1, genes2;
 
     for (int i = 0; i < gm.getNumberOfVertexes(); i++) {
-        // initially the genes not are used
+        // initially the genes are not used
         genes1[parent1[i]] = 0;
         genes2[parent2[i]] = 0;
     }
@@ -277,7 +279,7 @@ void GA::multiPointCrossoverWithInversion(std::vector<int> &parent1, std::vector
 }
 
 // Apply two-point crossover to selected Tour pair
-void GA::partiallyMatchedCrossover(std::vector<int> &parent1, std::vector<int> &parent2) {  // TODO - finish the function
+void GA::partiallyMappedCrossover(std::vector<int> &parent1, std::vector<int> &parent2) {  // TODO - finish the function
     std::vector<int> child1, child2;
 
     // map of genes, checks if already are selected

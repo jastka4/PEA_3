@@ -42,7 +42,7 @@ private:
     int isValidSolution(std::vector<int>& solution); // checks if a solution is valid
     void showPopulation(); // shows population
     void multiPointCrossoverWithInversion(std::vector<int>& parent1, std::vector<int>& parent2); // makes the crossover
-    void partiallyMatchedCrossover(std::vector<int>& parent1, std::vector<int>& parent2); // makes the crossover
+    void partiallyMappedCrossover(std::vector<int>& parent1, std::vector<int>& parent2); // makes the crossover
     void swapMutation(std::vector<int>& chromosome);
     void scrambleMutation(std::vector<int>& chromosome);
     void mutation(std::vector<int> &chromosome1, std::vector<int> &chromosome2);
